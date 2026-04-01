@@ -4,11 +4,13 @@ package IQ_Report_Manager.model.config.mongo;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.stereotype.Controller;
 
 import java.util.List;
 import java.util.Map;
 
 @Data
+@Controller
 @Document(collection = "report_configs")
 public class ReportConfig {
 
@@ -18,6 +20,9 @@ public class ReportConfig {
     private String index;
 
     private String email;
+
+    private List<String> cc;
+    private List<String> bcc;
 
     private String dbType;
 

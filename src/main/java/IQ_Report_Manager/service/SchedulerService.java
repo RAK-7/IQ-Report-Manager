@@ -2,7 +2,8 @@ package IQ_Report_Manager.service;
 
 
 import IQ_Report_Manager.model.config.mongo.ReportConfig;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -10,12 +11,11 @@ import java.util.List;
 
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class SchedulerService {
 
-    @Autowired
-    private ConfigService configService;
-
-    @Autowired
+    private final ConfigService configService;
     private ReportService reportService;
 
     @Scheduled(fixedRate = 60000) // check every minute

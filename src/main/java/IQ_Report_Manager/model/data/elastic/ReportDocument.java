@@ -9,12 +9,18 @@ import org.springframework.data.elasticsearch.annotations.Document;
 public class ReportDocument {
 
     @Id
-    private String id;
-
+    private String messageId;
+    private String customerId;
+    private String headerId;
+    private String message;
+    private String mobileNum;
+    private String status;
+    private int wordcount;
+    private int multipartSize;
     private String timestamp;
 
-    private String sourceAdd;
-
-    private String message;
+    private TemplateDetails templateDetails;
+    private SystemMetaData systemMetaData;
+    private Metadata metadata;
 
 }

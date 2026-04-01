@@ -3,21 +3,19 @@ package IQ_Report_Manager.controller;
 import IQ_Report_Manager.model.config.mongo.ReportConfig;
 import IQ_Report_Manager.service.ConfigService;
 import IQ_Report_Manager.service.ReportService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/reports")
 public class ReportController {
 
-    @Autowired
-    private ConfigService configService;
-
-    @Autowired
-    private ReportService reportService;
+    private final ConfigService configService;
+    private final ReportService reportService;
 
     // Create new report configuration
     @PostMapping("/config")

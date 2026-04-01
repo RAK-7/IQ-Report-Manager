@@ -1,13 +1,14 @@
 package IQ_Report_Manager.factory.config;
 
 import IQ_Report_Manager.repository.config.ConfigRepository;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.util.ObjectUtils;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Component
+@Configuration
 public class ConfigRepositoryFactory {
     private static final Map<String, ConfigRepository> REPOSITORY_MAP = new HashMap<>();
 
@@ -19,8 +20,7 @@ public class ConfigRepositoryFactory {
 
     public ConfigRepository getRepository(String configType) {
         ConfigRepository repo = REPOSITORY_MAP.get(configType);
-
-        if (repo == null) {
+        if (ObjectUtils.isEmpty(repo)) {
             throw new RuntimeException("No config repository found for type: " + configType);
         }
 
