@@ -41,4 +41,7 @@ public class ReportConfig {
     private String cron;
 
     private long triggerTime;
+
+    public String FileType;
+
 }

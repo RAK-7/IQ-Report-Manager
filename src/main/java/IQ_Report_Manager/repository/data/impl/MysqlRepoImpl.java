@@ -2,12 +2,15 @@ package IQ_Report_Manager.repository.data.impl;
 
 import IQ_Report_Manager.model.config.mongo.ReportConfig;
 import IQ_Report_Manager.repository.data.DataRepository;
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.*;
 
+@Slf4j
 @Repository
 public class MysqlRepoImpl implements DataRepository {
 
@@ -24,49 +27,89 @@ public class MysqlRepoImpl implements DataRepository {
 
         String tableName = config.getIndex();
 
-        //  Build query (like ES NativeQuery)
         String query = buildQuery(tableName);
 
-        //  Execute query (like elasticsearchOperations.search)
         List<Map<String, Object>> queryResult = executeQuery(query);
 
-        //  Extract results
-        List<Map<String, Object>> results = extractResults(queryResult);
-
-        return results;
+        return extractResults(queryResult);
     }
 
-    //  Build query (equivalent to NativeQuery.builder())
+    // Build Query (same role as ES NativeQuery)
     private String buildQuery(String tableName) {
         return "SELECT * FROM " + tableName;
     }
 
-    //  Execute query
+    // Execute Query
     private List<Map<String, Object>> executeQuery(String query) {
         try {
             return jdbcTemplate.queryForList(query);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error executing query: {}", query, e);
             return new ArrayList<>();
         }
     }
 
-    //  Extract results (same as  SearchHits loop in es)
+    // Extract Results (you can simplify this)
     private List<Map<String, Object>> extractResults(List<Map<String, Object>> queryResult) {
+        return new ArrayList<>(queryResult);
+    }
 
-        List<Map<String, Object>> results = new ArrayList<>();
+    //  Bulk Insert
+    public void insertBulkData(int count, String tableName) {
 
-        for (Map<String, Object> row : queryResult) {
+        String sql = "INSERT INTO " + tableName + " (" +
+                "message_id, customer_id, header_id, message, mobile_num, status, wordcount, multipart_size, timestamp," +
+                "pe_id, template_id," +
+                "bind_id, country_code, start_time, deliver_time, submit_time, country_name," +
+                "operator_model, operator_circle, operator_name," +
+                "sub_user_id, account_type" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-            Map<String, Object> map = new HashMap<>();
+        List<Object[]> batchArgs = new ArrayList<>();
 
-            for (Map.Entry<String, Object> entry : row.entrySet()) {
-                map.put(entry.getKey(), entry.getValue());
-            }
+        for (int i = 0; i < count; i++) {
 
-            results.add(map);
+            String messageId = UUID.randomUUID().toString();
+
+            batchArgs.add(new Object[]{
+                    messageId,
+                    "rakesh",
+                    "AJIOLX",
+                    "encoded-message",
+                    "9012345678",
+                    (i % 2 == 0 ? "DELIVERED" : "FAILED"),
+                    10,
+                    1,
+                    new Date(),
+
+                    "1234567890",
+                    "1234567890",
+
+                    "abc",
+                    "+91",
+                    new Date(),
+                    System.currentTimeMillis(),
+                    System.currentTimeMillis(),
+                    "India",
+                    "GSM",
+                    "DL",
+                    "Vodafone Idea Limited",
+
+                    "123",
+                    "CORPORATE"
+            });
         }
 
-        return results;
+        try {
+            int[] result = jdbcTemplate.batchUpdate(sql, batchArgs);
+            log.info("Bulk insert completed. Rows inserted: {}", result.length);
+
+        } catch (Exception e) {
+            log.error("Bulk insert failed!", e);
+        }
     }
+//    @PostConstruct
+//    public void init() {
+//        insertBulkData(20, "reports");
+//    }
 }

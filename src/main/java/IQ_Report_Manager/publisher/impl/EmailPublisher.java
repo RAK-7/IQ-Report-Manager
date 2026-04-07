@@ -1,23 +1,34 @@
 package IQ_Report_Manager.publisher.impl;
 
+import IQ_Report_Manager.dto.ReportData;
+import IQ_Report_Manager.factory.filehandler.FileHandlerFactory;
+import IQ_Report_Manager.filehandler.FileHandler;
+import IQ_Report_Manager.generator.impl.ReportGenerator;
 import IQ_Report_Manager.model.config.mongo.ReportConfig;
 import IQ_Report_Manager.publisher.Publisher;
 import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.function.Function;
+import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @Component
 public class EmailPublisher implements Publisher {
 
     @Autowired
     private JavaMailSender mailSender;
+
+    @Autowired
+    private ReportGenerator reportGenerator;
+
+    @Autowired
+    private FileHandlerFactory fileHandlerFactory;
 
     @Override
     public String getPublisherType() {
@@ -26,6 +37,7 @@ public class EmailPublisher implements Publisher {
 
     @Override
     public void publish(ReportConfig config, List<Map<String, Object>> data) {
+
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
@@ -44,122 +56,25 @@ public class EmailPublisher implements Publisher {
             helper.setSubject("Report Manager");
             helper.setText("Please find attached report");
 
-            // SpelEvaluation
+            // Generate report data
+            ReportData reportData = reportGenerator.generate(config, data);
 
-            // CSV LOGIC
+            FileHandler handler = fileHandlerFactory.getHandler(config.getFileType());
 
-            LinkedHashMap<String, Function<Map<String, Object>, String>> columnExtractors = new LinkedHashMap<>();
-            config.getMapping().forEach((key, value) -> {
-                    columnExtractors.put(value, row -> getSafe(row.get(value)));
-            });
+            byte[] file = handler.generate(reportData);
 
-            columnExtractors.put("Time", this::getTime);
-            columnExtractors.put("MsgId", row -> getSafe(row.get("messageId"))); // msgId
-            columnExtractors.put("MobNum", row -> getSafe(row.get("mobileNum")));
-            columnExtractors.put("Status", row -> getSafe(row.get("status")));
-            columnExtractors.put("MultipartSize", row -> getSafe(row.get("multipartSize")));
-            columnExtractors.put("Country", this::getCountry);
-            columnExtractors.put("SubUserId", this::getSubUserId);
-            columnExtractors.put("Operator", this::getOperator);
-            columnExtractors.put("Msg", row -> getSafe(row.get("message")));
-
-            List<String> finalColumns = new ArrayList<>();
-
-            // Detect non-empty columns
-            for (Map.Entry<String, Function<Map<String, Object>, String>> entry : columnExtractors.entrySet()) {
-
-                boolean hasData = false;
-
-                for (Map<String, Object> row : data) {
-                    String value = entry.getValue().apply(row);
-                    if (value != null && !value.trim().isEmpty()) {
-                        hasData = true;
-                        break;
-                    }
-                }
-
-                if (hasData) {
-                    finalColumns.add(entry.getKey());
-                }
-            }
-
-            StringBuilder csvBuilder = new StringBuilder();
-
-            // Header
-            csvBuilder.append(String.join(",", finalColumns)).append("\n");
-
-            // Rows
-            for (Map<String, Object> row : data) {
-
-                List<String> rowValues = new ArrayList<>();
-
-                for (String column : finalColumns) {
-                    String value = columnExtractors.get(column).apply(row);
-                    rowValues.add(clean(value));
-                }
-
-                csvBuilder.append(String.join(",", rowValues)).append("\n");
-            }
-
-            //  ATTACH CSV
             helper.addAttachment(
-                    "report.csv",
-                    new ByteArrayResource(csvBuilder.toString().getBytes())
+                    "report." + config.getFileType().toLowerCase(),
+                    new ByteArrayResource(file)
             );
 
-            //  SEND MAIL
-              mailSender.send(mimeMessage);
+            mailSender.send(mimeMessage);
 
             System.out.println("Mail Sent Successfully");
 
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.error("Error while sending email report", e);
+            throw new RuntimeException("Failed to send report email", e);
         }
-    }
-
-    //  HELPER METHODS
-
-    private String getSafe(Object value) {
-        return value != null ? value.toString() : "";
-    }
-
-    private String clean(String value) {
-        return value == null ? "" : value.replace(",", " ").replace("\n", " ");
-    }
-
-    @SuppressWarnings("unchecked")
-    private String getTime(Map<String, Object> row) {
-        Map<String, Object> sys = (Map<String, Object>) row.get("systemMetaData");
-        if (sys == null) return "";
-
-        Object millisObj = sys.get("submitTime");
-        if (millisObj == null) return "";
-
-        long millis = Long.parseLong(millisObj.toString());
-
-        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-                .format(new Date(millis));
-    }
-
-    private String getCountry(Map<String, Object> row) {
-        if (row.get("systemMetaData") instanceof Map<?, ?> sysMeta) {
-            return getSafe(sysMeta.get("countryName"));
-        }
-        return "India";
-    }
-
-    @SuppressWarnings("unchecked")
-    private String getOperator(Map<String, Object> row) {
-        Map<String, Object> sys = (Map<String, Object>) row.get("systemMetaData");
-        if (sys == null) return "";
-
-        Map<String, Object> op = (Map<String, Object>) sys.get("operatorDetails");
-        return op != null ? getSafe(op.get("operator")) : "";
-    }
-
-    @SuppressWarnings("unchecked")
-    private String getSubUserId(Map<String, Object> row) {
-        Map<String, Object> meta = (Map<String, Object>) row.get("metadata");
-        return meta != null ? getSafe(meta.get("subUserId")) : "";
     }
 }
