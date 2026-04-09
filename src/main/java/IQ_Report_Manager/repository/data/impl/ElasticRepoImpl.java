@@ -1,5 +1,6 @@
 package IQ_Report_Manager.repository.data.impl;
 
+import IQ_Report_Manager.filehandler.FileHandler;
 import IQ_Report_Manager.model.config.mongo.ReportConfig;
 import IQ_Report_Manager.repository.data.DataRepository;
 import IQ_Report_Manager.model.data.elastic.*;
@@ -7,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.SearchHitsIterator;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.stereotype.Repository;
 import jakarta.annotation.PostConstruct;
@@ -27,32 +29,43 @@ public class ElasticRepoImpl implements DataRepository {
     }
 
     @Override
-    public List<Map<String, Object>> fetchData(ReportConfig config) {
+    public void fetchData(ReportConfig config, FileHandler fileHandler) {
 
         String indexName = config.getIndex();
+        int batchSize = 1000;
 
-        // this is for building query, it selects from index (fetch data)
-        NativeQuery query = NativeQuery.builder()
-                .withQuery(q -> q.matchAll(m -> m))
-                .build();
+        SearchHitsIterator<Map> iterator = null;
 
-        // this is executing query that runs query on index and returns SearchHits (list of results)
-        SearchHits<Map> searchHits =
-                elasticsearchOperations.search(
-                        query,
-                        Map.class,
-                        IndexCoordinates.of(indexName)
-                );
+        try {
+            NativeQuery query = NativeQuery.builder()
+                    .withQuery(q -> q.matchAll(m -> m))
+                    .withPageable(org.springframework.data.domain.PageRequest.of(0, batchSize))
+                    .build();
 
-        List<Map<String, Object>> results = new ArrayList<>(); // this converts to usable format
+            iterator = elasticsearchOperations.searchForStream(
+                    query,
+                    Map.class,
+                    IndexCoordinates.of(indexName)
+            );
 
-        // this is to extract data and here Each hit = one document, getContent() = actual data
-        searchHits.forEach(hit -> {
-            Map<String, Object> content = (Map<String, Object>) hit.getContent();
-            results.add(content);
-        });
+            while (iterator.hasNext()) {
+                var hit = iterator.next();
 
-        return results;
+                if (hit != null && hit.getContent() != null) {
+                    fileHandler.writeRow(hit.getContent());
+                }
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error fetching data", e);
+
+        } finally {
+            if (iterator != null) {
+                try {
+                    iterator.close();
+                } catch (Exception ignored) {}
+            }
+        }
     }
 
     @Autowired

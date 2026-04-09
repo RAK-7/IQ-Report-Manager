@@ -30,8 +30,10 @@ public class ReportController {
     }
 
     @PostMapping("/run/{id}")
-    public List<Map<String, Object>> runReport(@PathVariable String id) {
+    public String runReport(@PathVariable String id) {
+
         ReportConfig config = configService.getConfigById(id);
-        return reportService.generateReport(config);
+        reportService.generateReport(config);
+        return "Report generated and sent successfully";
     }
 }

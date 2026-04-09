@@ -9,6 +9,5 @@ public interface Publisher {
 
     String getPublisherType();
 
-    void publish(ReportConfig config, List<Map<String,Object>> data);
-
+    void publish(ReportConfig config, String fileName);
 }

@@ -6,29 +6,26 @@ import IQ_Report_Manager.filehandler.FileHandler;
 import IQ_Report_Manager.generator.impl.ReportGenerator;
 import IQ_Report_Manager.model.config.mongo.ReportConfig;
 import IQ_Report_Manager.publisher.Publisher;
+import IQ_Report_Manager.repository.data.DataRepository;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
 @Component
+@Slf4j
 public class EmailPublisher implements Publisher {
 
     @Autowired
     private JavaMailSender mailSender;
-
-    @Autowired
-    private ReportGenerator reportGenerator;
-
-    @Autowired
-    private FileHandlerFactory fileHandlerFactory;
 
     @Override
     public String getPublisherType() {
@@ -36,7 +33,7 @@ public class EmailPublisher implements Publisher {
     }
 
     @Override
-    public void publish(ReportConfig config, List<Map<String, Object>> data) {
+    public void publish(ReportConfig config, String fileName) {
 
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -56,21 +53,15 @@ public class EmailPublisher implements Publisher {
             helper.setSubject("Report Manager");
             helper.setText("Please find attached report");
 
-            // Generate report data
-            ReportData reportData = reportGenerator.generate(config, data);
-
-            FileHandler handler = fileHandlerFactory.getHandler(config.getFileType());
-
-            byte[] file = handler.generate(reportData);
-
+            // ONLY attach file
             helper.addAttachment(
-                    "report." + config.getFileType().toLowerCase(),
-                    new ByteArrayResource(file)
+                    fileName,
+                    new FileSystemResource(new File(fileName))
             );
 
             mailSender.send(mimeMessage);
 
-            System.out.println("Mail Sent Successfully");
+            log.info("Mail sent successfully");
 
         } catch (Exception e) {
             log.error("Error while sending email report", e);
