@@ -9,11 +9,11 @@ import IQ_Report_Manager.model.config.mongo.ReportConfig;
 import IQ_Report_Manager.publisher.Publisher;
 import IQ_Report_Manager.repository.data.DataRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReportService {
@@ -42,15 +42,19 @@ public class ReportService {
             repo.fetchData(config, handler);
 
         } catch (Exception e) {
-            throw new RuntimeException("Error generating report", e);
+            log.error("Error generating report for file: {} with config: {}", fileName, config, e);
+            throw new RuntimeException("Error generating report" + fileName, e);
 
         } finally {
             try {
                 handler.close();
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.error("Error while closing file handler for file: {}", fileName, e);
+
+            }
         }
 
-        // Step 3: Publish
+        // Publish
         Publisher publisher =
                 publisherFactory.getPublisher(config.getPublisher());
 

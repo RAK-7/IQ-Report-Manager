@@ -37,7 +37,8 @@ public class SpelUtil {
             return value.toString();
 
         } catch (Exception e) {
-            return "";
+            log.error("Error evaluating SpEL expression:" + expression, e);
+            return "INVALID_EXPRESSION: " + expression;
         }
     }
 }

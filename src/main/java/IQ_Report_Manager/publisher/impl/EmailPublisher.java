@@ -1,24 +1,16 @@
 package IQ_Report_Manager.publisher.impl;
 
-import IQ_Report_Manager.dto.ReportData;
-import IQ_Report_Manager.factory.filehandler.FileHandlerFactory;
-import IQ_Report_Manager.filehandler.FileHandler;
-import IQ_Report_Manager.generator.impl.ReportGenerator;
 import IQ_Report_Manager.model.config.mongo.ReportConfig;
 import IQ_Report_Manager.publisher.Publisher;
-import IQ_Report_Manager.repository.data.DataRepository;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
-import java.util.List;
-import java.util.Map;
 
 @Component
 @Slf4j
