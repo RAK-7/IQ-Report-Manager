@@ -1,4 +1,4 @@
-package IQ_Report_Manager.generator.impl;
+package IQ_Report_Manager.reportgenerator.impl;
 
 import IQ_Report_Manager.dto.ReportData;
 import IQ_Report_Manager.model.config.mongo.ReportConfig;

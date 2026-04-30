@@ -71,7 +71,7 @@ public class XlsxFileHandler implements FileHandler {
             throw e;
         } finally {
             if (workbook != null) {
-                workbook.dispose(); // very important for SXSSF
+                workbook.dispose();
                 workbook.close();
             }
         }

@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 public class CsvFileHandler implements FileHandler {
 
     private BufferedWriter writer;
+    private boolean headerWritten = false;
 
     @Override
     public String getType() {
@@ -22,17 +23,33 @@ public class CsvFileHandler implements FileHandler {
     @Override
     public void init(String fileName) throws Exception {
         writer = Files.newBufferedWriter(Paths.get(fileName));
+        headerWritten = false;
     }
 
     @Override
-    public void writeRow(Map<String, Object> row) throws Exception {
+    public void writeRow(Map<String, Object> row) {
 
-        String line = row.values().stream()
-                .map(val -> val != null ? val.toString() : "")
-                .collect(Collectors.joining(","));
+        try {
+            // Write header only once
+            if (!headerWritten) {
+                String header = String.join(",", row.keySet());
+                writer.write(header);
+                writer.newLine();
+                headerWritten = true;
+            }
 
-        writer.write(line);
-        writer.newLine();
+            // Write row values
+            String line = row.values().stream()
+                    .map(value -> value != null ? value.toString() : "")
+                    .reduce((a, b) -> a + "," + b)
+                    .orElse("");
+
+            writer.write(line);
+            writer.newLine();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error writing CSV row", e);
+        }
     }
 
     @Override

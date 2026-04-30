@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import jakarta.annotation.PostConstruct;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 @Slf4j
 @Repository
@@ -29,7 +30,7 @@ public class ElasticRepoImpl implements DataRepository {
     }
 
     @Override
-    public void fetchData(ReportConfig config, FileHandler fileHandler) {
+    public void fetchData(ReportConfig config, Consumer<Map<String, Object>> consumer) {
 
         String indexName = config.getIndex();
         int batchSize = 1000;
@@ -52,7 +53,7 @@ public class ElasticRepoImpl implements DataRepository {
                 var hit = iterator.next();
 
                 if (hit != null && hit.getContent() != null) {
-                    fileHandler.writeRow(hit.getContent());
+                    consumer.accept(hit.getContent());
                 }
             }
 

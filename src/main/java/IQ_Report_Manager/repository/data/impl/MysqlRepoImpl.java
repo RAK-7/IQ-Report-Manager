@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 @Slf4j
 @Repository
@@ -24,7 +25,7 @@ public class MysqlRepoImpl implements DataRepository {
     }
 
     @Override
-    public void fetchData(ReportConfig config, FileHandler fileHandler) {
+    public void fetchData(ReportConfig config, Consumer<Map<String, Object>> consumer) {
 
         String tableName = config.getIndex();
         String query = "SELECT * FROM " + tableName;
@@ -49,12 +50,12 @@ public class MysqlRepoImpl implements DataRepository {
                         row.put(columnName, value);
                     }
 
-                    // Stream row → file
-                    fileHandler.writeRow(row);
+                    // Stream row via consumer
+                    consumer.accept(row);
 
                 } catch (Exception e) {
                     log.error("Error processing row from MySQL table: {}", tableName, e);
-                    throw new RuntimeException("Error writing row to file", e);
+                    throw new RuntimeException("Error processing row", e);
                 }
 
             });
