@@ -27,6 +27,8 @@ public class XlsxFileHandler implements FileHandler {
     @Override
     public void init(String fileName) throws Exception {
         this.fileName = fileName;
+        rowNum = 0;
+        headerWritten = false;
 
         // Streaming workbook (important for large data)
         this.workbook = new SXSSFWorkbook(100); // keeps 100 rows in memory
@@ -47,7 +49,6 @@ public class XlsxFileHandler implements FileHandler {
                 Cell cell = headerRow.createCell(col++);
                 cell.setCellValue(key);
             }
-
             headerWritten = true;
         }
 

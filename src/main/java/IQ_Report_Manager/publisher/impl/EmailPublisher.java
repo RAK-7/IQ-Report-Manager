@@ -11,6 +11,8 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.util.List;
+import java.util.Objects;
 
 @Component
 @Slf4j
@@ -34,12 +36,35 @@ public class EmailPublisher implements Publisher {
             helper.setFrom("rahulkarn77777@gmail.com");
             helper.setTo(config.getEmail());
 
-            if (config.getCc() != null && !config.getCc().isEmpty()) {
-                helper.setCc(config.getCc().toArray(new String[0]));
-            }
+            if (config != null) {
 
-            if (config.getBcc() != null && !config.getBcc().isEmpty()) {
-                helper.setBcc(config.getBcc().toArray(new String[0]));
+                // Handle CC
+                if (config.getCc() != null) {
+                    List<String> validCc = config.getCc().stream()
+                            .filter(Objects::nonNull)          // remove null values
+                            .map(String::trim)                 // remove leading/trailing spaces
+                            .filter(s -> !s.isEmpty())         // remove empty strings
+                            .filter(s -> s.contains("@"))      // basic email validation
+                            .toList();
+
+                    if (!validCc.isEmpty()) {
+                        helper.setCc(validCc.toArray(new String[0]));
+                    }
+                }
+
+                // Handle BCC
+                if (config.getBcc() != null) {
+                    List<String> validBcc = config.getBcc().stream()
+                            .filter(Objects::nonNull)
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .filter(s -> s.contains("@"))
+                            .toList();
+
+                    if (!validBcc.isEmpty()) {
+                        helper.setBcc(validBcc.toArray(new String[0]));
+                    }
+                }
             }
 
             helper.setSubject("Report Manager");

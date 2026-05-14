@@ -1,6 +1,5 @@
 package IQ_Report_Manager.model.config.mongo;
 
-
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -44,4 +43,7 @@ public class ReportConfig {
 
     public String FileType;
 
+    private Map<String, Object> filters;
+
+    private String timeField;
 }

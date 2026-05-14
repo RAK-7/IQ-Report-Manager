@@ -16,8 +16,7 @@ public class RawReportGenerator implements ReportGenerator {
     private final SpelUtil spelUtil;
 
     @Override
-    public Map<String, Object> processRow(Map<String, Object> sourceRow,
-                                          ReportConfig config) {
+    public Map<String, Object> processRow(Map<String, Object> sourceRow, ReportConfig config) {
 
         Map<String, String> mapping = config.getMapping();
         Map<String, Object> reportRow = new LinkedHashMap<>();

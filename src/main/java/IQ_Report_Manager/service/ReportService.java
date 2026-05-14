@@ -30,16 +30,13 @@ public class ReportService {
     public void generateReport(ReportConfig config) {
 
         //  Get repository
-        DataRepository datarepo =
-                dataRepositoryFactory.getRepository(config.getDbType());
+        DataRepository datarepo = dataRepositoryFactory.getRepository(config.getDbType());
 
         // Get generator (RAW / AGG)
-        ReportGenerator generator =
-                reportGeneratorFactory.getGenerator(config.getReportType());
+        ReportGenerator generator = reportGeneratorFactory.getGenerator(config.getReportType());
 
         // Get file handler
-        FileHandler handler =
-                fileHandlerFactory.getHandler(config.getFileType());
+        FileHandler handler = fileHandlerFactory.getHandler(config.getFileType());
 
         String fileName = "report." + config.getFileType().toLowerCase();
 
@@ -47,20 +44,47 @@ public class ReportService {
             // 4. Initialize file
             handler.init(fileName);
 
-            // 5. Stream data → transform → write
-            datarepo.fetchData(config, sourceRow -> {
+            // 5. Generate report based on type
 
-                try {
-                    // Apply mapping / transformation
-                    Map<String, Object> reportRow = generator.processRow(sourceRow, config);
+            if (config.getReportType().equalsIgnoreCase("AGG")) {
 
-                    // Write to file immediately
-                    handler.writeRow(reportRow);
+                log.info("INSIDE AGG FLOW");
 
-                } catch (Exception e) {
-                    log.error("Error processing row: {}", sourceRow, e);
+                var aggRows = datarepo.fetchAggData(config);
+
+                for (Map<String, Object> sourceRow : aggRows) {
+
+                    try {
+
+                        Map<String, Object> reportRow =
+                                generator.processRow(sourceRow, config);
+
+                        handler.writeRow(reportRow);
+
+                    } catch (Exception e) {
+
+                        log.error("Error processing AGG row: {}", sourceRow, e);
+                    }
                 }
-            });
+
+            } else {
+
+                log.info("INSIDE RAW FLOW");
+
+                datarepo.fetchData(config, sourceRow -> {
+
+                    try {
+
+                        Map<String, Object> reportRow = generator.processRow(sourceRow, config);
+
+                        handler.writeRow(reportRow);
+
+                    } catch (Exception e) {
+
+                        log.error("Error processing RAW row: {}", sourceRow, e);
+                    }
+                });
+            }
         } catch (Exception e) {
             log.error("Error generating report for file: {} with config: {}", fileName, config, e);
             throw new RuntimeException("Error generating report" + fileName, e);

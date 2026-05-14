@@ -12,21 +12,16 @@ import org.springframework.stereotype.Component;
 public class ReportGeneratorFactory {
 
     private final RawReportGenerator rawReportGenerator;
-//    private final AggReportGenerator aggregatedReportGenerator;
+    private final AggReportGenerator aggregatedReportGenerator;
 
     public ReportGenerator getGenerator(String reportType) {
 
         ReportType type = ReportType.valueOf(reportType.toUpperCase());
 
-        switch (type) {
-            case RAW:
-                return rawReportGenerator;
-
-//            case AGG:
-//                return aggregatedReportGenerator;
-
-            default:
-                throw new IllegalArgumentException("Invalid report type: " + reportType);
-        }
+        return switch (type) {
+            case RAW -> rawReportGenerator;
+            case AGG -> aggregatedReportGenerator;
+            default -> throw new IllegalArgumentException("Invalid report type: " + reportType);
+        };
     }
 }
