@@ -10,8 +10,7 @@ import org.springframework.stereotype.Service;
  * Ollama implementation of LlmService.
  *
  * Supports:
- * - deepseek
- * -
+ * - qwen2.5:7b
  */
 
 @Slf4j

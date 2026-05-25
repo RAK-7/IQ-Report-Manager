@@ -1,6 +1,101 @@
 package IQ_Report_Manager.ai.agent;
-//Coordinates planner, memory, tool execution, and response formatting.
 
+/**
+Coordinates planner, memory, tool execution, and response formatting.
+THIS IS THE HEART OF AGENT SYSTEM.
+ */
 
+import IQ_Report_Manager.ai.dto.AgentRequest;
+import IQ_Report_Manager.ai.dto.AgentResponse;
+import IQ_Report_Manager.ai.memory.ConversationMemoryService;
+import IQ_Report_Manager.ai.memory.MemoryContext;
+import IQ_Report_Manager.ai.planner.AgentPlanner;
+import IQ_Report_Manager.ai.response.ResponseFormatter;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.util.UUID;
+
+/**
+ * Central orchestration engine.
+ *
+ * Responsibilities:
+ * - memory management
+ * - planning
+ * - execution coordination
+ * - response generation
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
 public class AgentOrchestrator {
+
+    private final ConversationMemoryService memoryService;
+
+    private final AgentPlanner agentPlanner;
+
+    private final ResponseFormatter responseFormatter;
+
+    /**
+     * Main orchestration entry point.
+     */
+    public AgentResponse process(
+            AgentRequest request
+    ) {
+
+        try {
+
+            String conversationId =
+                    request.getConversationId() != null
+                            ? request.getConversationId()
+                            : UUID.randomUUID().toString();
+
+            // Retrieve conversation memory
+            MemoryContext memoryContext =
+                    memoryService.getOrCreateContext(
+                            conversationId,
+                            request.getUserId()
+                    );
+
+            // Store incoming message
+            memoryService.updateContext(
+                    memoryContext,
+                    request.getMessage()
+            );
+
+            log.info(
+                    "Processing request for conversation: {}",
+                    conversationId
+            );
+
+            // Generate execution plan
+            String executionPlan =
+                    agentPlanner.createPlan(
+                            request.getMessage()
+                    );
+
+            // Store generated plan
+            memoryService.updateContext(
+                    memoryContext,
+                    executionPlan
+            );
+
+            return responseFormatter.success(
+                    "Execution plan generated successfully.",
+                    executionPlan
+            );
+
+        } catch (Exception ex) {
+
+            log.error(
+                    "Error during orchestration",
+                    ex
+            );
+
+            return responseFormatter.failure(
+                    ex.getMessage()
+            );
+        }
+    }
 }
