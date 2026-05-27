@@ -14,12 +14,15 @@ import IQ_Report_Manager.ai.response.ResponseFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import IQ_Report_Manager.mcp.dto.ToolRequest;
+import IQ_Report_Manager.mcp.dto.ToolResponse;
+import IQ_Report_Manager.mcp.registry.ToolRegistry;
+import IQ_Report_Manager.mcp.tool.McpTool;
 
 import java.util.UUID;
 
 /**
  * Central orchestration engine.
- *
  * Responsibilities:
  * - memory management
  * - planning
@@ -36,6 +39,8 @@ public class AgentOrchestrator {
     private final AgentPlanner agentPlanner;
 
     private final ResponseFormatter responseFormatter;
+
+    private final ToolRegistry toolRegistry;
 
     /**
      * Main orchestration entry point.
@@ -75,6 +80,17 @@ public class AgentOrchestrator {
                             request.getMessage()
                     );
 
+            ToolRequest toolRequest =
+                    ToolRequest.builder()
+                            .toolName("list_reports")
+                            .build();
+
+            ToolResponse toolResponse =
+                    executeTool(
+                            "list_reports",
+                            toolRequest
+                    );
+
             // Store generated plan
             memoryService.updateContext(
                     memoryContext,
@@ -97,5 +113,25 @@ public class AgentOrchestrator {
                     ex.getMessage()
             );
         }
+    }
+    private ToolResponse executeTool(
+            String toolName,
+            ToolRequest request
+    ) {
+
+        McpTool tool =
+                toolRegistry.getTool(toolName);
+
+        if (tool == null) {
+
+            return ToolResponse.builder()
+                    .status("FAILED")
+                    .message(
+                            "Tool not found: " + toolName
+                    )
+                    .build();
+        }
+
+        return tool.execute(request);
     }
 }

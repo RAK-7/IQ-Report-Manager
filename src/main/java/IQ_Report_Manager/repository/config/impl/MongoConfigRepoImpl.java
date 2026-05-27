@@ -32,4 +32,9 @@ public class MongoConfigRepoImpl implements ConfigRepository {
     public ReportConfig saveConfig(ReportConfig config) {
         return reportConfigRepository.save(config);
     }
+
+    @Override
+    public ReportConfig getConfigByName(String name) {
+        return reportConfigRepository.findByName(name);
+    }
 }

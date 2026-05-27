@@ -10,5 +10,5 @@ public interface ConfigRepository {
     List<ReportConfig> getAllConfigs();
     ReportConfig saveConfig(ReportConfig Config);
     ReportConfig getConfigById(String id);
-
+    ReportConfig getConfigByName(String name);
 }

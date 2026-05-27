@@ -29,4 +29,9 @@ public class ConfigService {
     public ReportConfig getConfigById(String id) {
         return configRepository.getConfigById(id);
     }
+
+    public ReportConfig getConfigByName(String name) {
+        return configRepository.getConfigByName(name);
+    }
+
 }

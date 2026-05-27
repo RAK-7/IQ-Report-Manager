@@ -46,4 +46,8 @@ public class ReportConfig {
     private Map<String, Object> filters;
 
     private String timeField;
+
+    private String PublisherType;
+
+    private String Name;
 }
