@@ -1,5 +1,4 @@
 package IQ_Report_Manager.ai.planner;
-//Represents a single action such as generate_report.
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,7 +8,15 @@ import lombok.NoArgsConstructor;
 import java.util.Map;
 
 /**
- * Single execution step.
+ * Represents a single executable step inside an ExecutionPlan.
+ *
+ * Example:
+ *
+ * Step 1:
+ * generate_report
+ *
+ * Step 2:
+ * publish_report
  */
 @Data
 @Builder
@@ -18,27 +25,22 @@ import java.util.Map;
 public class PlanStep {
 
     /**
-     * Step order.
+     * Execution order.
      */
     private Integer order;
 
     /**
-     * Action/tool name.
+     * MCP Tool name.
+     *
+     * Examples:
+     * - generate_report
+     * - publish_report
+     * - schedule_report
      */
-    private String action;
+    private String tool;
 
     /**
-     * Step description.
-     */
-    private String description;
-
-    /**
-     * Step parameters.
+     * Parameters required by the tool.
      */
     private Map<String, Object> parameters;
-
-    /**
-     * Whether execution is mandatory.
-     */
-    private boolean required;
 }

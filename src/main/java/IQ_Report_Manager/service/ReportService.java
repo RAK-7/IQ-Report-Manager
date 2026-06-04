@@ -20,7 +20,7 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ReportService {
+public final class ReportService {
 
     private final DataRepositoryFactory dataRepositoryFactory;
     private final PublisherFactory publisherFactory;

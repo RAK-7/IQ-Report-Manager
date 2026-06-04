@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 @Data
-@Controller
 @Document(collection = "report_configs")
 public class ReportConfig {
 
@@ -41,13 +40,13 @@ public class ReportConfig {
 
     private long triggerTime;
 
-    public String FileType;
+    public String fileType;
 
     private Map<String, Object> filters;
 
     private String timeField;
 
-    private String PublisherType;
+    private String publisherType;
 
-    private String Name;
+    private String name;
 }

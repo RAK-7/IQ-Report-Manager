@@ -7,9 +7,10 @@ THIS IS THE HEART OF AGENT SYSTEM.
 
 import IQ_Report_Manager.ai.dto.AgentRequest;
 import IQ_Report_Manager.ai.dto.AgentResponse;
+import IQ_Report_Manager.ai.executor.PlanExecutor;
 import IQ_Report_Manager.ai.memory.ConversationMemoryService;
 import IQ_Report_Manager.ai.memory.MemoryContext;
-import IQ_Report_Manager.ai.planner.AgentPlanner;
+import IQ_Report_Manager.ai.planner.ExecutionPlanner;
 import IQ_Report_Manager.ai.response.ResponseFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,9 @@ import IQ_Report_Manager.mcp.dto.ToolRequest;
 import IQ_Report_Manager.mcp.dto.ToolResponse;
 import IQ_Report_Manager.mcp.registry.ToolRegistry;
 import IQ_Report_Manager.mcp.tool.McpTool;
+import IQ_Report_Manager.ai.dto.ToolSelectionResponse;
+import IQ_Report_Manager.ai.executor.ExecutionContext;
+import IQ_Report_Manager.ai.planner.ExecutionPlan;
 
 import java.util.UUID;
 
@@ -36,11 +40,11 @@ public class AgentOrchestrator {
 
     private final ConversationMemoryService memoryService;
 
-    private final AgentPlanner agentPlanner;
-
     private final ResponseFormatter responseFormatter;
 
-    private final ToolRegistry toolRegistry;
+    private final ExecutionPlanner executionPlanner;
+
+    private final PlanExecutor planExecutor;
 
     /**
      * Main orchestration entry point.
@@ -74,32 +78,46 @@ public class AgentOrchestrator {
                     conversationId
             );
 
-            // Generate execution plan
-            String executionPlan =
-                    agentPlanner.createPlan(
+            /**
+             * Step 1:
+             * Convert user request into executable plan.
+             */
+            ExecutionPlan plan =
+                    executionPlanner.createPlan(
                             request.getMessage()
                     );
 
-            ToolRequest toolRequest =
-                    ToolRequest.builder()
-                            .toolName("list_reports")
-                            .build();
-
-            ToolResponse toolResponse =
-                    executeTool(
-                            "list_reports",
-                            toolRequest
-                    );
-
-            // Store generated plan
-            memoryService.updateContext(
-                    memoryContext,
-                    executionPlan
+            log.info(
+                    "Execution plan created. Steps={}",
+                    plan.getSteps().size()
             );
 
+            /**
+             * Step 2:
+             * Execute plan.
+             */
+            ExecutionContext executionContext =
+                    planExecutor.execute(
+                            plan,
+                            conversationId
+                    );
+
+            /**
+             * Step 3:
+             * Save plan into conversation memory.
+             */
+            memoryService.updateContext(
+                    memoryContext,
+                    plan.toString()
+            );
+
+            /**
+             * Step 4:
+             * Return response.
+             */
             return responseFormatter.success(
-                    "Execution plan generated successfully.",
-                    executionPlan
+                    "Execution completed successfully",
+                    "Plan ID : " + plan.getPlanId()
             );
 
         } catch (Exception ex) {
@@ -114,24 +132,5 @@ public class AgentOrchestrator {
             );
         }
     }
-    private ToolResponse executeTool(
-            String toolName,
-            ToolRequest request
-    ) {
 
-        McpTool tool =
-                toolRegistry.getTool(toolName);
-
-        if (tool == null) {
-
-            return ToolResponse.builder()
-                    .status("FAILED")
-                    .message(
-                            "Tool not found: " + toolName
-                    )
-                    .build();
-        }
-
-        return tool.execute(request);
-    }
 }
