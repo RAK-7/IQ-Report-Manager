@@ -1,38 +1,23 @@
 package IQ_Report_Manager.ai.agent;
 
-/**
-Coordinates planner, memory, tool execution, and response formatting.
-THIS IS THE HEART OF AGENT SYSTEM.
- */
-
 import IQ_Report_Manager.ai.dto.AgentRequest;
 import IQ_Report_Manager.ai.dto.AgentResponse;
-import IQ_Report_Manager.ai.executor.PlanExecutor;
-import IQ_Report_Manager.ai.memory.ConversationMemoryService;
+import IQ_Report_Manager.ai.executor.*;
 import IQ_Report_Manager.ai.memory.MemoryContext;
+import IQ_Report_Manager.ai.memory.MemoryResolver;
+import IQ_Report_Manager.ai.memory.service.ConversationMemoryService;
+import IQ_Report_Manager.ai.planner.ExecutionPlan;
 import IQ_Report_Manager.ai.planner.ExecutionPlanner;
+import IQ_Report_Manager.ai.planner.RecoveryPlanner;
+import IQ_Report_Manager.ai.response.AgentResponseGenerator;
 import IQ_Report_Manager.ai.response.ResponseFormatter;
+import IQ_Report_Manager.mcp.dto.ToolResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import IQ_Report_Manager.mcp.dto.ToolRequest;
-import IQ_Report_Manager.mcp.dto.ToolResponse;
-import IQ_Report_Manager.mcp.registry.ToolRegistry;
-import IQ_Report_Manager.mcp.tool.McpTool;
-import IQ_Report_Manager.ai.dto.ToolSelectionResponse;
-import IQ_Report_Manager.ai.executor.ExecutionContext;
-import IQ_Report_Manager.ai.planner.ExecutionPlan;
 
 import java.util.UUID;
 
-/**
- * Central orchestration engine.
- * Responsibilities:
- * - memory management
- * - planning
- * - execution coordination
- * - response generation
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -46,12 +31,15 @@ public class AgentOrchestrator {
 
     private final PlanExecutor planExecutor;
 
-    /**
-     * Main orchestration entry point.
-     */
-    public AgentResponse process(
-            AgentRequest request
-    ) {
+    private final AgentResponseGenerator responseGenerator;
+
+    private final MemoryResolver memoryResolver;
+
+    private final RecoveryPlanner recoveryPlanner;
+
+    private ExecutionResult executionResult;
+
+    public AgentResponse process(AgentRequest request) {
 
         try {
 
@@ -60,70 +48,152 @@ public class AgentOrchestrator {
                             ? request.getConversationId()
                             : UUID.randomUUID().toString();
 
-            // Retrieve conversation memory
+            /*
+             * Load memory.
+             */
             MemoryContext memoryContext =
                     memoryService.getOrCreateContext(
                             conversationId,
                             request.getUserId()
                     );
 
-            // Store incoming message
+            /*
+             * Save current intent.
+             */
+            memoryContext.setLastIntent(
+                    request.getMessage()
+            );
+
             memoryService.updateContext(
                     memoryContext,
                     request.getMessage()
             );
 
             log.info(
-                    "Processing request for conversation: {}",
+                    "Processing conversation {}",
                     conversationId
             );
 
-            /**
-             * Step 1:
-             * Convert user request into executable plan.
+            /*
+             * Create plan.
              */
+            String resolvedRequest =
+                    memoryResolver.resolve(
+                            request.getMessage(),
+                            memoryContext
+                    );
+
             ExecutionPlan plan =
                     executionPlanner.createPlan(
-                            request.getMessage()
+                            resolvedRequest,
+                            memoryContext
                     );
 
-            log.info(
-                    "Execution plan created. Steps={}",
-                    plan.getSteps().size()
-            );
-
-            /**
-             * Step 2:
+            /*
              * Execute plan.
              */
+            if (!executionResult.isSuccess()) {
+
+                log.warn(
+                        "Execution failed. Attempting recovery."
+                );
+
+                FailureAnalysis failure =
+                        FailureAnalysis.builder()
+                                .failedTool(
+                                        executionResult.getFailedTool()
+                                )
+                                .errorMessage(
+                                        executionResult.getErrorMessage()
+                                )
+                                .build();
+
+                ExecutionPlan recoveryPlan =
+                        recoveryPlanner.buildRecoveryPlan(
+                                failure
+                        );
+
+                executionResult =
+                        planExecutor.execute(
+                                recoveryPlan,
+                                conversationId
+                        );
+            }
+
+            /*
+             * Self-correction / retry.
+             */
+            if (!executionResult.isSuccess()) {
+
+                log.warn(
+                        "Execution failed at tool {}",
+                        executionResult.getFailedTool()
+                );
+
+                return responseFormatter.failure(
+                        executionResult.getErrorMessage()
+                );
+            }
+
             ExecutionContext executionContext =
-                    planExecutor.execute(
-                            plan,
-                            conversationId
+                    executionResult.getContext();
+
+            /*
+             * Save report metadata into memory.
+             */
+            Object generateResponse =
+                    executionContext.get(
+                            "generate_report"
                     );
 
-            /**
-             * Step 3:
-             * Save plan into conversation memory.
+            if (generateResponse instanceof ToolResponse toolResponse
+                    && toolResponse.getData() != null) {
+
+                Object result =
+                        toolResponse.getData()
+                                .get(
+                                        "executionResult"
+                                );
+
+                if (result instanceof ReportExecutionResult reportResult) {
+
+                    memoryService.saveLastReport(
+                            conversationId,
+                            reportResult.getReportName()
+                    );
+
+                    memoryService.saveExecutionResult(
+                            conversationId,
+                            reportResult
+                    );
+                }
+            }
+
+            /*
+             * Save plan.
              */
             memoryService.updateContext(
                     memoryContext,
                     plan.toString()
             );
 
-            /**
-             * Step 4:
-             * Return response.
+            /*
+             * Generate response.
              */
+            String finalResponse =
+                    responseGenerator.generateResponse(
+                            executionContext
+                    );
+
             return responseFormatter.success(
-                    "Execution completed successfully",
-                    "Plan ID : " + plan.getPlanId()
+                    finalResponse,
+                    plan
             );
 
         } catch (Exception ex) {
 
             log.error(
-                    "Error during orchestration",
+                    "Agent execution failed",
                     ex
             );
 
@@ -132,5 +202,4 @@ public class AgentOrchestrator {
             );
         }
     }
-
 }

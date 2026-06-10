@@ -4,10 +4,12 @@ package IQ_Report_Manager.mcp.registry;
 
 
 import IQ_Report_Manager.mcp.tool.McpTool;
+import IQ_Report_Manager.mcp.tool.ToolMetadata;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,10 +45,34 @@ public class ToolRegistry {
     }
 
     /**
+     * Return all registered tools.
+     */
+    public Collection<McpTool> getAllTools() {
+        return toolMap.values();
+    }
+
+    /**
      * Returns tool by name.
      */
     public McpTool getTool(String name) {
 
         return toolMap.get(name);
+    }
+
+    /**
+     * Returns metadata for a tool.
+     */
+    public ToolMetadata getToolMetadata(
+            String toolName
+    ) {
+
+        McpTool tool =
+                toolMap.get(toolName);
+
+        if (tool == null) {
+            return null;
+        }
+
+        return tool.getMetadata();
     }
 }

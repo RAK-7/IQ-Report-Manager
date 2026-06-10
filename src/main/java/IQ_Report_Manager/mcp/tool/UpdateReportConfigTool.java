@@ -21,28 +21,81 @@ public class UpdateReportConfigTool implements McpTool {
     }
 
     @Override
-    public ToolResponse execute(ToolRequest request) {
+    public ToolMetadata getMetadata() {
 
-        String reportName =
-                (String) request.getParameters()
-                        .get("reportName");
+        ToolMetadata metadata =
+                ToolMetadata.builder()
+                        .toolName("update_report_config")
+                        .description("Update an existing report configuration")
+                        .build();
 
-        ReportConfig config =
-                configService.getConfigByName(reportName);
+        metadata.addParameter(
+                ToolSchema.builder()
+                        .name("reportName")
+                        .type("String")
+                        .description("Existing report name")
+                        .required(true)
+                        .build()
+        );
 
-        if (config == null) {
+        metadata.addParameter(
+                ToolSchema.builder()
+                        .name("fileType")
+                        .type("String")
+                        .description("CSV or XLSX")
+                        .required(false)
+                        .build()
+        );
+
+        return metadata;
+    }
+
+    @Override
+    public ToolResponse execute(
+            ToolRequest request
+    ) {
+
+        try {
+
+            String reportName =
+                    (String) request.getParameters()
+                            .get("reportName");
+
+            ReportConfig config =
+                    configService.getConfigByName(
+                            reportName
+                    );
+
+            if (config == null) {
+
+                return ToolResponse.builder()
+                        .status("FAILED")
+                        .message("Config not found")
+                        .build();
+            }
+
+            if (request.getParameters()
+                    .containsKey("fileType")) {
+
+                config.setFileType(
+                        (String) request.getParameters()
+                                .get("fileType")
+                );
+            }
+
+            configService.saveConfig(config);
+
+            return ToolResponse.builder()
+                    .status("SUCCESS")
+                    .message("Configuration updated")
+                    .build();
+
+        } catch (Exception ex) {
 
             return ToolResponse.builder()
                     .status("FAILED")
-                    .message("Config not found")
+                    .message(ex.getMessage())
                     .build();
         }
-
-        configService.saveConfig(config);
-
-        return ToolResponse.builder()
-                .status("SUCCESS")
-                .message("Config updated")
-                .build();
     }
 }

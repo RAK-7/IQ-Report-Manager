@@ -18,6 +18,7 @@ public class XlsxFileHandler implements FileHandler {
     private int rowNum = 0;
     private String fileName;
     private boolean headerWritten = false;
+    private long rowCount;
 
     @Override
     public String getType() {
@@ -28,6 +29,7 @@ public class XlsxFileHandler implements FileHandler {
     public void init(String fileName) throws Exception {
         this.fileName = fileName;
         rowNum = 0;
+        rowCount = 0;
         headerWritten = false;
 
         // Streaming workbook (important for large data)
@@ -60,6 +62,7 @@ public class XlsxFileHandler implements FileHandler {
             Cell cell = row.createCell(col++);
             cell.setCellValue(value != null ? value.toString() : "");
         }
+        rowCount++;
     }
 
     @Override
@@ -78,5 +81,17 @@ public class XlsxFileHandler implements FileHandler {
         }
 
         log.info("XLSX file written successfully: {}", fileName);
+    }
+
+    @Override
+    public String getFilePath() {
+
+        return fileName;
+    }
+
+    @Override
+    public long getRowCount() {
+
+        return rowCount;
     }
 }

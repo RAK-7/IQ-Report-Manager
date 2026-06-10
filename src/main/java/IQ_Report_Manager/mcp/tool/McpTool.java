@@ -15,6 +15,11 @@ public interface McpTool {
     String getName();
 
     /**
+     * Tool metadata.
+     */
+    ToolMetadata getMetadata();
+
+    /**
      * Executes tool logic.
      */
     ToolResponse execute(ToolRequest request);

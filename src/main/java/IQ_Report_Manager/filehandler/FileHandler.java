@@ -11,4 +11,14 @@ public interface FileHandler {
     void writeRow(Map<String, Object> row) throws Exception;
 
     void close() throws Exception;
+
+    /**
+     * Returns generated file path.
+     */
+    String getFilePath();
+
+    /**
+     * Number of rows written.
+     */
+    long getRowCount();
 }

@@ -2,6 +2,7 @@ package IQ_Report_Manager.ai.response;
 //Converts structured results into plain language.
 
 import IQ_Report_Manager.ai.dto.AgentResponse;
+import IQ_Report_Manager.ai.planner.ExecutionPlan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +21,7 @@ public class ResponseFormatter {
      */
     public AgentResponse success(
             String message,
-            String executionPlan
+            ExecutionPlan executionPlan
     ) {
 
         return AgentResponse.builder()

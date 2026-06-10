@@ -35,6 +35,6 @@ public class MongoConfigRepoImpl implements ConfigRepository {
 
     @Override
     public ReportConfig getConfigByName(String name) {
-        return reportConfigRepository.findByName(name);
+        return reportConfigRepository.findByreportName(name);
     }
 }

@@ -1,8 +1,6 @@
 package IQ_Report_Manager.mcp.tool;
 
-//Calls ReportService.
-
-
+import IQ_Report_Manager.ai.executor.ReportExecutionResult;
 import IQ_Report_Manager.mcp.dto.ToolRequest;
 import IQ_Report_Manager.mcp.dto.ToolResponse;
 import IQ_Report_Manager.model.config.mongo.ReportConfig;
@@ -12,11 +10,22 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Generates reports using existing ReportService.
+ * MCP Tool responsible for generating reports.
+ *
+ * Flow:
+ *
+ * find_report_config
+ *          ↓
+ * generate_report
+ *          ↓
+ * ReportExecutionResult
+ *          ↓
+ * publish_report
  */
 @Slf4j
 @Component
@@ -34,6 +43,42 @@ public class GenerateReportTool implements McpTool {
     }
 
     @Override
+    public ToolMetadata getMetadata() {
+
+        ToolMetadata metadata =
+                ToolMetadata.builder()
+                        .toolName("generate_report")
+                        .description(
+                                "Generate report using existing ReportConfig"
+                        )
+                        .build();
+
+        metadata.addParameter(
+                ToolSchema.builder()
+                        .name("reportName")
+                        .type("String")
+                        .description(
+                                "Existing report configuration name"
+                        )
+                        .required(true)
+                        .build()
+        );
+
+        metadata.addParameter(
+                ToolSchema.builder()
+                        .name("fileType")
+                        .type("String")
+                        .description(
+                                "CSV or XLSX"
+                        )
+                        .required(false)
+                        .build()
+        );
+
+        return metadata;
+    }
+
+    @Override
     public ToolResponse execute(
             ToolRequest request
     ) {
@@ -43,10 +88,19 @@ public class GenerateReportTool implements McpTool {
             Map<String, Object> params =
                     request.getParameters();
 
+            if (params == null) {
+
+                return ToolResponse.builder()
+                        .status("FAILED")
+                        .message("Parameters are required")
+                        .build();
+            }
+
             String reportName =
                     (String) params.get("reportName");
 
-            if (reportName == null) {
+            if (reportName == null
+                    || reportName.isBlank()) {
 
                 return ToolResponse.builder()
                         .status("FAILED")
@@ -59,43 +113,123 @@ public class GenerateReportTool implements McpTool {
                     reportName
             );
 
-            // Load configuration
+            /**
+             * Load ReportConfig.
+             */
             ReportConfig config =
-                    configService.getConfigByName(reportName);
+                    configService.getConfigByName(
+                            reportName
+                    );
 
             if (config == null) {
 
                 return ToolResponse.builder()
                         .status("FAILED")
-                        .message("Report configuration not found")
+                        .message(
+                                "Report configuration not found"
+                        )
                         .build();
             }
 
-            // Runtime overrides
+            /**
+             * Runtime file type override.
+             */
             if (params.containsKey("fileType")) {
 
                 config.setFileType(
-                        (String) params.get("fileType")
+                        params.get("fileType")
+                                .toString()
                 );
             }
 
-            if (params.containsKey("publisherType")) {
+            /**
+             * Start execution timer.
+             */
+            LocalDateTime startTime =
+                    LocalDateTime.now();
 
-                config.setPublisherType(
-                        (String) params.get("publisherType")
-                );
-            }
+            /**
+             * Actual report generation.
+             */
+            ReportExecutionResult executionResult =
+                    reportService.generateReportWithResult(
+                            config
+                    );
 
-            // Generate report
-            String filePath = "report generated successfully";;
+            LocalDateTime endTime =
+                    LocalDateTime.now();
 
-            Map<String, Object> data = new HashMap<>();
+//            /**
+//             * Generated file name.
+//             *
+//             * NOTE:
+//             * Later we'll get actual filename
+//             * from ReportService.
+//             */
+//            String fileName =
+//                    config.getReportName()
+//                            + "_"
+//                            + System.currentTimeMillis()
+//                            + "."
+//                            + config.getFileType()
+//                            .toLowerCase();
+//
+//            String filePath =
+//                    "reports/" + fileName;
+//
+//            /**
+//             * Build execution result.
+//             */
+//            ReportExecutionResult executionResult =
+//                    ReportExecutionResult.builder()
+//                            .reportName(
+//                                    config.getReportName()
+//                            )
+//                            .fileName(
+//                                    fileName
+//                            )
+//                            .filePath(
+//                                    filePath
+//                            )
+//                            .startTime(
+//                                    startTime
+//                            )
+//                            .endTime(
+//                                    endTime
+//                            )
+//                            .reportType(
+//                                    config.getReportType()
+//                            )
+//                            .dbType(
+//                                    config.getDbType()
+//                            )
+//                            .fileType(
+//                                    config.getFileType()
+//                            )
+//                            .reportConfig(
+//                                    config
+//                            )
+//                            .status(
+//                                    "SUCCESS"
+//                            )
+//                            .build();
 
-            data.put("filePath", filePath);
+            /**
+             * Tool output.
+             */
+            Map<String, Object> data =
+                    new HashMap<>();
+
+            data.put(
+                    "executionResult",
+                    executionResult
+            );
 
             return ToolResponse.builder()
                     .status("SUCCESS")
-                    .message("Report generated successfully")
+                    .message(
+                            "Report generated successfully"
+                    )
                     .data(data)
                     .build();
 

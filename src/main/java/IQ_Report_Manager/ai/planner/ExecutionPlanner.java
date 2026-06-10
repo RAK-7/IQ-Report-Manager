@@ -1,12 +1,13 @@
 package IQ_Report_Manager.ai.planner;
 
+import IQ_Report_Manager.ai.prompt.ToolPromptBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import IQ_Report_Manager.ai.llm.LlmService;
 import IQ_Report_Manager.ai.prompt.PromptTemplate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
+import IQ_Report_Manager.ai.memory.MemoryContext;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -23,17 +24,68 @@ public class ExecutionPlanner {
 
     private final ObjectMapper objectMapper;
 
+    private final ToolPromptBuilder toolPromptBuilder;
+
+    public ExecutionPlan createPlan(String userRequest) {
+
+        return createPlan(
+                userRequest,
+                null
+        );
+    }
+
     /**
      * Creates an executable plan from natural language.
      */
-    public ExecutionPlan createPlan(String userRequest) {
+    public ExecutionPlan createPlan(String userRequest, MemoryContext memoryContext) {
 
         try {
 
+            String plannerPrompt = toolPromptBuilder.buildExecutionPrompt();
+
+            /**
+             * Build memory context for planner.
+             */
+            String memoryPrompt = "";
+
+            if (memoryContext != null) {
+
+                if (memoryContext.getLastReportName() != null) {
+
+                    memoryPrompt += """
+                
+                PREVIOUS REPORT:
+                %s
+                
+                """
+                            .formatted(
+                                    memoryContext.getLastReportName()
+                            );
+                }
+
+                if (memoryContext.getLastIntent() != null) {
+
+                    memoryPrompt += """
+                
+                PREVIOUS INTENT:
+                %s
+                
+                """
+                            .formatted(
+                                    memoryContext.getLastIntent()
+                            );
+                }
+            }
+
+            String finalRequest =
+                    memoryPrompt
+                            + "\n"
+                            + userRequest;
+
             String response =
                     llmService.generate(
-                            PromptTemplate.EXECUTION_PLAN_PROMPT,
-                            userRequest
+                            plannerPrompt,
+                            finalRequest
                     );
 
             // Qwen often wraps JSON in markdown

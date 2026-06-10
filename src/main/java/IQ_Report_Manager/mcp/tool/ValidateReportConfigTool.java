@@ -21,6 +21,31 @@ public class ValidateReportConfigTool implements McpTool {
     }
 
     @Override
+    public ToolMetadata getMetadata() {
+
+        ToolMetadata metadata =
+                ToolMetadata.builder()
+                        .toolName("validate_report")
+                        .description(
+                                "Validate report configuration"
+                        )
+                        .build();
+
+        metadata.addParameter(
+                ToolSchema.builder()
+                        .name("reportName")
+                        .type("String")
+                        .description(
+                                "Report configuration name"
+                        )
+                        .required(true)
+                        .build()
+        );
+
+        return metadata;
+    }
+
+    @Override
     public ToolResponse execute(ToolRequest request) {
 
         String reportName =

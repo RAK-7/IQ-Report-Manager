@@ -49,4 +49,9 @@ public class ReportConfig {
     private String publisherType;
 
     private String name;
+
+    /**
+     * daily / weekly / monthly
+     */
+    private String frequency;
 }

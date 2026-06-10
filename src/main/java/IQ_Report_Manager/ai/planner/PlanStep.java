@@ -43,4 +43,7 @@ public class PlanStep {
      * Parameters required by the tool.
      */
     private Map<String, Object> parameters;
+
+    private boolean required;
+
 }

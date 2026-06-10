@@ -16,7 +16,49 @@ import java.util.List;
 public class SchedulerService {
 
     private final ConfigService configService;
-    private ReportService reportService;
+    private final ReportService reportService;
+
+    /**
+     * Calculates next execution time
+     * based on frequency.
+     */
+    private long calculateNextTrigger(
+            ReportConfig config
+    ) {
+
+        long current =
+                config.getTriggerTime();
+
+        String frequency =
+                config.getFrequency();
+
+        if (frequency == null) {
+
+            return current +
+                    (60 * 60 * 1000L);
+        }
+
+        return switch (
+                frequency.toLowerCase()
+                ) {
+
+            case "daily" ->
+                    current +
+                            (24 * 60 * 60 * 1000L);
+
+            case "weekly" ->
+                    current +
+                            (7 * 24 * 60 * 60 * 1000L);
+
+            case "monthly" ->
+                    current +
+                            (30L * 24 * 60 * 60 * 1000);
+
+            default ->
+                    current +
+                            (60 * 60 * 1000L);
+        };
+    }
 
     @Scheduled(fixedRate = 60000) // check every minute
     public void runReports() {
@@ -34,8 +76,8 @@ public class SchedulerService {
                     // Run report
                     reportService.generateReport(config);
 
-                    // next run after 1 hour
-                    long nextTrigger = config.getTriggerTime() + (60 * 60 * 1000);
+                    // next run
+                    long nextTrigger = calculateNextTrigger(config);
 
                     config.setTriggerTime(nextTrigger);
 

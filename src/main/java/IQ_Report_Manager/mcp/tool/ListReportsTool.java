@@ -32,6 +32,17 @@ public class ListReportsTool implements McpTool {
     }
 
     @Override
+    public ToolMetadata getMetadata() {
+
+        return ToolMetadata.builder()
+                .toolName("list_reports")
+                .description(
+                        "Returns all available report configurations"
+                )
+                .build();
+    }
+
+    @Override
     public ToolResponse execute(
             ToolRequest request
     ) {
@@ -41,7 +52,7 @@ public class ListReportsTool implements McpTool {
 
         List<String> reportNames =
                 reports.stream()
-                        .map(ReportConfig::getName)
+                        .map(ReportConfig::getReportName)
                         .collect(Collectors.toList());
 
         Map<String, Object> data =

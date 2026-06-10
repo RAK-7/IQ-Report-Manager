@@ -14,6 +14,8 @@ public class CsvFileHandler implements FileHandler {
 
     private BufferedWriter writer;
     private boolean headerWritten = false;
+    private String filePath;
+    private long rowCount;
 
     @Override
     public String getType() {
@@ -22,6 +24,8 @@ public class CsvFileHandler implements FileHandler {
 
     @Override
     public void init(String fileName) throws Exception {
+        this.filePath = fileName;
+        this.rowCount = 0;
         writer = Files.newBufferedWriter(Paths.get(fileName));
         headerWritten = false;
     }
@@ -50,6 +54,7 @@ public class CsvFileHandler implements FileHandler {
         } catch (Exception e) {
             throw new RuntimeException("Error writing CSV row", e);
         }
+        rowCount++;
     }
 
     @Override
@@ -58,5 +63,17 @@ public class CsvFileHandler implements FileHandler {
             writer.flush();
             writer.close();
         }
+    }
+
+    @Override
+    public String getFilePath() {
+
+        return filePath;
+    }
+
+    @Override
+    public long getRowCount() {
+
+        return rowCount;
     }
 }
