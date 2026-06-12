@@ -260,17 +260,10 @@ public final class ReportService {
         }
 
         /*
-         * Publish report
+         * NOTE: Publishing is NOT done here.
+         * PublishReportTool is responsible for calling the publisher.
+         * This method only generates the file and returns the result.
          */
-        Publisher publisher =
-                publisherFactory.getPublisher(
-                        config.getPublisher()
-                );
-
-        publisher.publish(
-                config,
-                fileName
-        );
 
         LocalDateTime endTime =
                 LocalDateTime.now();

@@ -34,7 +34,7 @@ private final ExecutionPlanner executionPlanner;
     public ExecutionPlan test() {
 
         return executionPlanner.createPlan(
-                "Generate agg report and email it every Monday to rahulkarn98420@gmail.com"
+                "Generate agg report and email it to rahulkarn98420@gmail.com"
         );
     }
 }

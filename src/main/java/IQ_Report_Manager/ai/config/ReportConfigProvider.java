@@ -33,7 +33,13 @@ public class ReportConfigProvider {
         if (configs == null || configs.isEmpty()) {
 
             return """
-                    No report configurations available.
+                    AVAILABLE REPORT CONFIGURATIONS
+                    ====================================
+                    NONE. The database is completely EMPTY.
+                    
+                    CRITICAL INSTRUCTION:
+                    Because there are 0 configurations, you CANNOT use find_report_config, generate_report, or schedule_report without creating one first!
+                    You MUST MUST MUST include "create_report_config" as the VERY FIRST step (order: 1) in your JSON plan, and populate ALL its parameters (reportName, dbType, reportType, etc.) based on the user's request.
                     """;
         }
 
@@ -75,6 +81,10 @@ public class ReportConfigProvider {
 
             sb.append("-----------------------------------\n");
         }
+        sb.append("""
+                CRITICAL INSTRUCTION:
+                If the user asks for a report name that is NOT EXACTLY listed above (e.g., they ask for a new report name), you MUST MUST MUST include "create_report_config" as the VERY FIRST step (order: 1) in your JSON plan! You cannot generate or schedule a report that does not exist in the list above!
+                """);
 
         return sb.toString();
     }

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -75,6 +76,17 @@ public class GenerateReportTool implements McpTool {
                         .build()
         );
 
+        metadata.addParameter(
+                ToolSchema.builder()
+                        .name("reportType")
+                        .type("String")
+                        .description(
+                                "RAW or AGG — overrides the stored config. Use AGG for aggregate reports, RAW for raw data."
+                        )
+                        .required(false)
+                        .build()
+        );
+
         return metadata;
     }
 
@@ -102,10 +114,16 @@ public class GenerateReportTool implements McpTool {
             if (reportName == null
                     || reportName.isBlank()) {
 
-                return ToolResponse.builder()
-                        .status("FAILED")
-                        .message("reportName is required")
-                        .build();
+                List<ReportConfig> configs = configService.getAllConfigs();
+                if (configs != null && !configs.isEmpty()) {
+                    reportName = configs.get(0).getReportName();
+                    log.warn("reportName missing in generate_report. Using fallback: {}", reportName);
+                } else {
+                    return ToolResponse.builder()
+                            .status("FAILED")
+                            .message("reportName is required and no configurations exist")
+                            .build();
+                }
             }
 
             log.info(
@@ -132,14 +150,41 @@ public class GenerateReportTool implements McpTool {
             }
 
             /**
-             * Runtime file type override.
+             * Runtime overrides — user's request takes priority over stored config.
+             *
+             * fileType override: CSV / XLSX
              */
-            if (params.containsKey("fileType")) {
+            if (params.containsKey("fileType") && params.get("fileType") != null) {
 
-                config.setFileType(
-                        params.get("fileType")
-                                .toString()
-                );
+                String requestedFileType = params.get("fileType").toString().toUpperCase().trim();
+                config.setFileType(requestedFileType);
+
+                log.info("fileType override applied: {}", requestedFileType);
+            }
+
+            /**
+             * reportType override: RAW / AGG.
+             *
+             * Normalizes common LLM variants:
+             * "aggregate", "AGGREGATE", "agg", "AGG" → "AGG"
+             * "raw", "RAW"                           → "RAW"
+             *
+             * This ensures "Generate an aggregate report" always
+             * produces AGG even if the stored config says RAW.
+             */
+            if (params.containsKey("reportType") && params.get("reportType") != null) {
+
+                String requestedType = params.get("reportType").toString().toUpperCase().trim();
+
+                // Normalize: AGGREGATE / AGGREGATED / AGG all → "AGG"
+                if (requestedType.startsWith("AGG") || requestedType.equals("AGGREGATE")) {
+                    requestedType = "AGG";
+                } else if (requestedType.equals("RAW")) {
+                    requestedType = "RAW";
+                }
+
+                config.setReportType(requestedType);
+                log.info("reportType override applied: {}", requestedType);
             }
 
             /**

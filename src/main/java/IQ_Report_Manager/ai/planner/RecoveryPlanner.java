@@ -33,33 +33,7 @@ public class RecoveryPlanner {
                 "RECOVERY"
         );
 
-        /*
-         * generate_report failed
-         */
-        if ("generate_report".equalsIgnoreCase(
-                failure.getFailedTool()
-        )) {
 
-            plan.addStep(
-                    PlanStep.builder()
-                            .order(1)
-                            .tool(
-                                    "find_report_config"
-                            )
-                            .required(true)
-                            .build()
-            );
-
-            plan.addStep(
-                    PlanStep.builder()
-                            .order(2)
-                            .tool(
-                                    "generate_report"
-                            )
-                            .required(true)
-                            .build()
-            );
-        }
 
         /*
          * publish_report failed

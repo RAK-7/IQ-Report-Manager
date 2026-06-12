@@ -31,7 +31,9 @@ public class ElasticRepoImpl implements DataRepository {
 
     @Override
     public String getDbType() {
-        return "ES";
+        // Returns "ELASTICSEARCH" so DataRepositoryFactory lookup succeeds
+        // when config.dbType = "ELASTICSEARCH"
+        return "ELASTICSEARCH";
     }
 
     @Override

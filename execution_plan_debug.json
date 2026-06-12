@@ -1,0 +1,35 @@
+{
+  "steps": [
+    {
+      "order": 1,
+      "tool": "find_report_config",
+      "parameters": {
+        "reportName": "es-raw-report"
+      }
+    },
+    {
+      "order": 2,
+      "tool": "generate_report",
+      "parameters": {
+        "reportName": "es-raw-report",
+        "reportType": "RAW",
+        "fileType": "CSV"
+      }
+    },
+    {
+      "order": 3,
+      "tool": "publish_report",
+      "parameters": {
+        "reportName": "es-raw-report"
+      }
+    },
+    {
+      "order": 4,
+      "tool": "schedule_report",
+      "parameters": {
+        "reportName": "es-raw-report",
+        "frequency": "minute"
+      }
+    }
+  ]
+}

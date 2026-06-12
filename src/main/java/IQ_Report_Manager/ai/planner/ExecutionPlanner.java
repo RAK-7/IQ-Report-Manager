@@ -95,6 +95,13 @@ public class ExecutionPlanner {
                     .trim();
 
             log.info("Execution Plan JSON: {}", response);
+            
+            try {
+                java.nio.file.Files.writeString(
+                    java.nio.file.Paths.get("execution_plan_debug.json"), 
+                    response
+                );
+            } catch (Exception e) {}
 
             ExecutionPlan plan =
                     objectMapper.readValue(

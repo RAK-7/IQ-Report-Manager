@@ -7,6 +7,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Factory that resolves DataRepository by DB type.
+ *
+ * Supports:
+ * - MYSQL
+ * - ELASTICSEARCH (or ES as alias)
+ * Case-insensitive lookup.
+ */
 @Component
 public class DataRepositoryFactory {
 
@@ -15,16 +23,35 @@ public class DataRepositoryFactory {
     public DataRepositoryFactory(List<DataRepository> repositories) {
 
         for (DataRepository repo : repositories) {
-            repositoryMap.put(repo.getDbType(), repo);
+            // Register by the canonical key
+            repositoryMap.put(repo.getDbType().toUpperCase(), repo);
+        }
+
+        // Register aliases so both "ES" and "ELASTICSEARCH" work
+        DataRepository esRepo = repositoryMap.get("ELASTICSEARCH");
+        if (esRepo != null) {
+            repositoryMap.putIfAbsent("ES", esRepo);
+        }
+
+        DataRepository mysqlRepo = repositoryMap.get("MYSQL");
+        if (mysqlRepo != null) {
+            repositoryMap.putIfAbsent("MYSQL", mysqlRepo);
         }
     }
 
     public DataRepository getRepository(String dbType) {
 
-        DataRepository repo = repositoryMap.get(dbType);
+        if (dbType == null || dbType.isBlank()) {
+            throw new RuntimeException("dbType cannot be null or empty");
+        }
+
+        DataRepository repo = repositoryMap.get(dbType.toUpperCase().trim());
 
         if (repo == null) {
-            throw new RuntimeException("No repository found for DB type: " + dbType);
+            throw new RuntimeException(
+                    "No repository found for DB type: '" + dbType
+                            + "'. Available types: " + repositoryMap.keySet()
+            );
         }
 
         return repo;

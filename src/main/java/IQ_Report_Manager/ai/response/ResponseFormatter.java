@@ -21,13 +21,15 @@ public class ResponseFormatter {
      */
     public AgentResponse success(
             String message,
-            ExecutionPlan executionPlan
+            ExecutionPlan executionPlan,
+            String conversationId
     ) {
 
         return AgentResponse.builder()
                 .status("SUCCESS")
                 .message(message)
                 .executionPlan(executionPlan)
+                .conversationId(conversationId)
                 .timestamp(LocalDateTime.now())
                 .build();
     }
@@ -36,12 +38,14 @@ public class ResponseFormatter {
      * Failure response.
      */
     public AgentResponse failure(
-            String message
+            String message,
+            String conversationId
     ) {
 
         return AgentResponse.builder()
                 .status("FAILED")
                 .message(message)
+                .conversationId(conversationId)
                 .timestamp(LocalDateTime.now())
                 .build();
     }

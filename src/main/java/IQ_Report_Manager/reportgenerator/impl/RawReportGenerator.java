@@ -9,6 +9,15 @@ import org.springframework.stereotype.Component;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * RAW report generator.
+ *
+ * Behaviour:
+ * - If config has a field mapping: apply it (rename/transform columns).
+ * - If config has NO mapping (null or empty): pass all source columns through as-is.
+ *   This is the default for dynamically-created configs where the user just says
+ *   "give me the data from X table/index".
+ */
 @Component
 @RequiredArgsConstructor
 public class RawReportGenerator implements ReportGenerator {
@@ -19,6 +28,18 @@ public class RawReportGenerator implements ReportGenerator {
     public Map<String, Object> processRow(Map<String, Object> sourceRow, ReportConfig config) {
 
         Map<String, String> mapping = config.getMapping();
+
+        /*
+         * No mapping defined → pass all columns through directly.
+         * This happens when a user creates a config on-the-fly without specifying mappings.
+         */
+        if (mapping == null || mapping.isEmpty()) {
+            return passthroughRow(sourceRow);
+        }
+
+        /*
+         * Mapping defined → apply field rename / SpEL transform.
+         */
         Map<String, Object> reportRow = new LinkedHashMap<>();
 
         for (Map.Entry<String, String> entry : mapping.entrySet()) {
@@ -30,10 +51,10 @@ public class RawReportGenerator implements ReportGenerator {
 
             try {
                 if (sourceField.startsWith("#")) {
-                    //  SpEL support
+                    // SpEL expression support
                     value = clean(spelUtil.evaluate(sourceField, sourceRow));
                 } else {
-                    //  Safe extraction
+                    // Direct field extraction
                     value = clean(getSafe(sourceRow.get(sourceField)));
                 }
             } catch (Exception e) {
@@ -44,6 +65,23 @@ public class RawReportGenerator implements ReportGenerator {
         }
 
         return reportRow;
+    }
+
+    /**
+     * Passes all source columns through with no transformation.
+     * Used when no field mapping is configured.
+     */
+    private Map<String, Object> passthroughRow(Map<String, Object> sourceRow) {
+
+        Map<String, Object> result = new LinkedHashMap<>();
+
+        for (Map.Entry<String, Object> entry : sourceRow.entrySet()) {
+            String key = entry.getKey();
+            Object val = entry.getValue();
+            result.put(key, val != null ? clean(val.toString()) : "");
+        }
+
+        return result;
     }
 
     private String getSafe(Object value) {

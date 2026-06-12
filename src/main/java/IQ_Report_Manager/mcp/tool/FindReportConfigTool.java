@@ -63,30 +63,50 @@ public class FindReportConfigTool implements McpTool {
             }
 
             Object reportNameObj =
-                    request.getParameters()
-                            .get("reportName");
+                    request.getParameters() != null
+                            ? request.getParameters().get("reportName")
+                            : null;
 
-            if (reportNameObj == null) {
+            /*
+             * reportName may be null if the LLM didn't pass it (small model limitation).
+             * In that case, list all configs and pick the best match or return all.
+             */
+            String reportName = reportNameObj != null
+                    ? reportNameObj.toString().toLowerCase().trim()
+                    : null;
 
-                return ToolResponse.builder()
-                        .status("FAILED")
-                        .message("reportName is required")
-                        .build();
-            }
-
-            String reportName =
-                    reportNameObj.toString()
-                            .toLowerCase()
-                            .trim();
-
-            List<ReportConfig> configs =
-                    configService.getAllConfigs();
+            List<ReportConfig> configs = configService.getAllConfigs();
 
             if (configs == null || configs.isEmpty()) {
 
+                /*
+                 * Return NOT_FOUND (not FAILED) so PlanExecutor
+                 * continues to create_report_config if needed.
+                 */
                 return ToolResponse.builder()
-                        .status("FAILED")
-                        .message("No report configurations found")
+                        .status("NOT_FOUND")
+                        .message("No report configurations found. Create one first.")
+                        .build();
+            }
+
+            /*
+             * If no reportName given, return the first config as a fallback.
+             */
+            if (reportName == null || reportName.isBlank()) {
+
+                log.warn("reportName not provided — returning first available config as fallback");
+
+                ReportConfig fallback = configs.get(0);
+                Map<String, Object> data = new HashMap<>();
+                data.put("reportConfig", fallback);
+                data.put("reportName", fallback.getReportName());
+                data.put("score", 0);
+                data.put("confidence", "LOW");
+
+                return ToolResponse.builder()
+                        .status("SUCCESS")
+                        .message("Returned first available config (reportName not specified)")
+                        .data(data)
                         .build();
             }
 

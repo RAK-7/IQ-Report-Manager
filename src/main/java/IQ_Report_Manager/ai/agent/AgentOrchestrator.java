@@ -37,16 +37,15 @@ public class AgentOrchestrator {
 
     private final RecoveryPlanner recoveryPlanner;
 
-    private ExecutionResult executionResult;
-
     public AgentResponse process(AgentRequest request) {
 
-        try {
+        // Declare outside try so catch can access it for the response
+        String conversationId =
+                request.getConversationId() != null
+                        ? request.getConversationId()
+                        : UUID.randomUUID().toString();
 
-            String conversationId =
-                    request.getConversationId() != null
-                            ? request.getConversationId()
-                            : UUID.randomUUID().toString();
+        try {
 
             /*
              * Load memory.
@@ -89,13 +88,28 @@ public class AgentOrchestrator {
                             memoryContext
                     );
 
+            log.info(
+                    "Execution plan created with {} steps",
+                    plan.getSteps().size()
+            );
+
             /*
-             * Execute plan.
+             * Execute the plan (THIS WAS THE MISSING CALL).
+             */
+            ExecutionResult executionResult =
+                    planExecutor.execute(
+                            plan,
+                            conversationId
+                    );
+
+            /*
+             * If execution failed, attempt recovery.
              */
             if (!executionResult.isSuccess()) {
 
                 log.warn(
-                        "Execution failed. Attempting recovery."
+                        "Execution failed at tool '{}'. Attempting recovery.",
+                        executionResult.getFailedTool()
                 );
 
                 FailureAnalysis failure =
@@ -113,25 +127,30 @@ public class AgentOrchestrator {
                                 failure
                         );
 
-                executionResult =
-                        planExecutor.execute(
-                                recoveryPlan,
-                                conversationId
-                        );
+                if (recoveryPlan.getSteps() != null
+                        && !recoveryPlan.getSteps().isEmpty()) {
+
+                    executionResult =
+                            planExecutor.execute(
+                                    recoveryPlan,
+                                    conversationId
+                            );
+                }
             }
 
             /*
-             * Self-correction / retry.
+             * If still failed after recovery, return failure response.
              */
             if (!executionResult.isSuccess()) {
 
                 log.warn(
-                        "Execution failed at tool {}",
+                        "Execution still failed after recovery at tool '{}'",
                         executionResult.getFailedTool()
                 );
 
                 return responseFormatter.failure(
-                        executionResult.getErrorMessage()
+                        executionResult.getErrorMessage(),
+                        conversationId
                 );
             }
 
@@ -170,15 +189,15 @@ public class AgentOrchestrator {
             }
 
             /*
-             * Save plan.
+             * Save plan to memory.
              */
             memoryService.updateContext(
                     memoryContext,
-                    plan.toString()
+                    "Executed plan: " + plan.getSteps().size() + " steps"
             );
 
             /*
-             * Generate response.
+             * Generate natural language response.
              */
             String finalResponse =
                     responseGenerator.generateResponse(
@@ -187,7 +206,8 @@ public class AgentOrchestrator {
 
             return responseFormatter.success(
                     finalResponse,
-                    plan
+                    plan,
+                    conversationId
             );
 
         } catch (Exception ex) {
@@ -198,7 +218,8 @@ public class AgentOrchestrator {
             );
 
             return responseFormatter.failure(
-                    ex.getMessage()
+                    ex.getMessage(),
+                    conversationId
             );
         }
     }
